@@ -142,6 +142,6 @@ class ListItemsController < ApplicationController
   end
 
   def list_item_params
-    params.require(:list_item).permit(:title, :content, :parent_id)
+    params.require(:list_item).permit(:title, :content, :parent_id, :position)
   end
 end

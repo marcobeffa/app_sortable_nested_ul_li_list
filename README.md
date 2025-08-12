@@ -44,3 +44,10 @@ end
 echo 'pin "sortablejs", to: "https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"' >> config/importmap.rb
 
 echo "Setup completato! Ora configura i file generati come mostrato negli artifact successivi."
+
+##  Migrazione consigliata
+def change
+  add_column :list_items, :position, :integer, default: 0, null: false
+  add_index  :list_items, [:ancestry, :position]
+end
+

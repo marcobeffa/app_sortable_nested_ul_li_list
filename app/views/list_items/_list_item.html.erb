@@ -117,7 +117,8 @@
       <ul data-sortable-target="list" 
           data-parent-id="<%= list_item.id %>"
           class="space-y-2 pl-2">
-        <%= render partial: "list_item", collection: list_item.children.order(:position, :created_at) %>
+        <%= render partial: "list_item", collection: list_item.children.reorder(Arel.sql("COALESCE(position,0) ASC, id ASC")) %>
+           
       </ul>
     </div>
   <% else %>
