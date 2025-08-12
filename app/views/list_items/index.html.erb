@@ -1,0 +1,265 @@
+<%# app/views/list_items/index.html.erb %>
+<div class="container mx-auto px-4 py-8" data-controller="collapse">
+    <!-- Form veloce per aggiungere item -->
+<div class="bg-white rounded-lg shadow-sm border p-6 mb-8">
+  <%= form_with model: @list_item,
+      local: false,
+      class: "flex flex-col md:flex-row gap-4 items-stretch",
+      data: { turbo_frame: "list_container" } do |form| %>
+
+    <%= form.text_field :title,
+        placeholder: "Titolo del nuovo item...",
+        class: "flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+
+    <%= form.text_area :content,
+        placeholder: "Descrizione (opzionale)...",
+        rows: 1,
+        class: "flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" %>
+
+    <%= form.submit "+",
+        class: "bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md transition-colors md:self-center md:h-auto w-full md:w-auto text-lg font-bold" %>
+  <% end %>
+</div>
+
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Liste Sortabili</h1>
+    
+      <!-- Pulsanti globali collapse minimalisti -->
+      <div class="flex gap-1 mr-3">
+        <button data-action="click->collapse#collapseAll" 
+                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                title="Comprimi tutto">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14"></path>
+          </svg>
+        </button>
+        
+        <button data-action="click->collapse#expandAll" 
+                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                title="Espandi tutto">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m7-7H5"></path>
+          </svg>
+        </button>
+      </div>
+  </div>
+
+  
+    <!-- Lista principale sortabile -->
+  <%= turbo_frame_tag "list_container" do %>
+    <div data-controller="sortable" 
+         data-sortable-url-value="<%= sort_list_items_path %>"
+         data-sortable-group-value="nested-sortable"
+         class="space-y-2">
+      
+      <ul data-sortable-target="list" 
+          class="space-y-2 sortable-list">
+        <%= render partial: "list_item", collection: @list_items %>
+      </ul>
+    </div>
+  <% end %>
+</div>
+
+<!-- Styles per il drag & drop avanzato e numerazione -->
+<style>
+  /* Stili base drag & drop */
+  .sortable-ghost {
+    opacity: 0.3;
+    background: #f3f4f6;
+  }
+  
+  .sortable-chosen {
+    @apply ring-2 ring-indigo-500 shadow-lg;
+    transform: rotate(2deg) scale(1.05);
+  }
+  
+  .sortable-drag {
+    @apply shadow-2xl;
+    transform: rotate(-2deg) scale(1.1);
+    z-index: 1000;
+  }
+  
+  /* Zone di drop colorate */
+  .drop-zone-same-level {
+    background-color: #dbeafe !important; /* Blu */
+    border: 2px dashed #3b82f6 !important;
+  }
+  
+  .drop-zone-indent {
+    background-color: #dcfce7 !important; /* Verde */
+    border: 2px dashed #16a34a !important;
+  }
+  
+  .drop-zone-outdent {
+    background-color: #f3e8ff !important; /* Viola */
+    border: 2px dashed #7c3aed !important;
+  }
+  
+  /* Zone di drop sempre presenti ma invisibili */
+  .drop-zone-area {
+    min-height: 30px;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  /* Indicatori visivi durante il drag */
+  .drag-indicator {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  
+  .drop-zone-same-level .drag-indicator {
+    background-color: #3b82f6;
+    opacity: 1;
+  }
+  
+  .drop-zone-indent .drag-indicator {
+    background-color: #16a34a;
+    opacity: 1;
+  }
+  
+  .drop-zone-outdent .drag-indicator {
+    background-color: #7c3aed;
+    opacity: 1;
+  }
+  
+  /* Animazioni fluide */
+  li[data-id] {
+  
+    transition: all 0.2s ease;
+  }
+  
+  li[data-id]:hover:not(.sortable-chosen) {
+    transform: scale(0.99);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  
+  /* Effetto luminoso per le zone attive */
+  .drop-zone-area.active {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  
+  /* === NUMERAZIONE SEMPLICE === */
+  /* Reset dei counter per ogni lista */
+  ul[data-sortable-target="list"] {
+    counter-reset: item;
+  }
+  
+  /* Counter per tutti gli elementi */
+  li[data-id] {
+    counter-increment: item;
+  }
+  
+  /* Stili per i numeri */
+  .item-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.75rem;
+    text-align: center;
+    font-family: 'Inter', system-ui, sans-serif;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+  
+  /* Numero del counter */
+  .item-number::before {
+    content: counter(item);
+  }
+  
+  /* Hover effect sui numeri */
+  li[data-id]:hover .item-number {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* CICLO DI COLORI INFINITO - Calcolo del livello di nidificazione */
+  
+  /* Livello 0 (root) - Blu */
+  .sortable-list > li[data-id] .item-number {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  }
+  
+  /* Livello 1 - Verde */
+  .sortable-list ul[data-sortable-target="list"] > li[data-id] .item-number {
+    background: linear-gradient(135deg, #10b981, #047857);
+  }
+  
+  /* Livello 2 - Arancione */
+  .sortable-list ul[data-sortable-target="list"] ul[data-sortable-target="list"] > li[data-id] .item-number {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+  }
+  
+  /* Livello 3 - Viola */
+  .sortable-list ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] > li[data-id] .item-number {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  }
+  
+  /* Livello 4 - Rosa */
+  .sortable-list ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] > li[data-id] .item-number {
+    background: linear-gradient(135deg, #ec4899, #be185d);
+  }
+  
+  /* Livello 5 - Indaco */
+  .sortable-list ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] > li[data-id] .item-number {
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+  }
+  
+  /* Livello 6 - Teal */
+  .sortable-list ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] > li[data-id] .item-number {
+    background: linear-gradient(135deg, #0d9488, #115e59);
+  }
+  
+  /* Livello 7 - Rosso - Poi ricomincia il ciclo */
+  .sortable-list ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] > li[data-id] .item-number {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+  
+  /* Livello 8+ - Torna al Blu (ricomincia il ciclo) */
+  .sortable-list ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] ul[data-sortable-target="list"] > li[data-id] .item-number {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  }
+  
+  /* === COLLAPSE/EXPAND === */
+  .collapse-btn {
+    flex-shrink: 0;
+  }
+  
+  .collapse-btn svg {
+    transition: transform 0.2s ease;
+  }
+  
+  .collapse-btn:hover {
+    background-color: #f3f4f6;
+  }
+  
+  .collapsible-content {
+    overflow: hidden;
+    transition: all 0.3s ease-out;
+  }
+  
+  .collapsible-content.collapsed {
+    max-height: 0 !important;
+    opacity: 0.3;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+</style>
