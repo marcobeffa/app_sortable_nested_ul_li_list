@@ -7,6 +7,7 @@ export default class extends Controller {
     console.log("Collapse controller connected")
   }
 
+  // Metodo originale per toggle solo visivo (senza persistenza)
   toggle(event) {
     const button = event.currentTarget
     const targetId = button.dataset.targetId
@@ -20,8 +21,65 @@ export default class extends Controller {
       arrow.style.transform = 'rotate(0deg)'
     } else {
       content.classList.add('collapsed')
-      arrow.style.transform = 'rotate(-90deg)'
+      arrow.style.transform = 'rotate(-90[48;33;190;1056;2660tdeg)'
     }
+  }
+
+  // Nuovo metodo con persistenza nel database
+  toggleWithPersistence(event) {
+    const button = event.currentTarget
+    const itemId = button.dataset.itemId
+    const targetId = button.dataset.targetId
+    const content = document.getElementById(targetId)
+    const arrow = button.querySelector('svg')
+    
+    if (!content || !arrow || !itemId) return
+
+    // Prima aggiorna l'UI immediatamente per responsività
+    const isCurrentlyExpanded = !content.classList.contains('collapsed')
+    
+    if (isCurrentlyExpanded) {
+      content.classList.add('collapsed')
+      arrow.style.transform = 'rotate(-90deg)'
+    } else {
+      content.classList.remove('collapsed')
+      arrow.style.transform = 'rotate(0deg)'
+    }
+
+    // Poi salva lo stato nel database
+    fetch(`/list_items/${itemId}/toggle_expanded`, {
+      method: 'PATCH',
+      headers: {
+        'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log(`Item ${itemId} expanded state saved:`, data.expanded)
+      // Se c'è discrepanza tra UI e database, correggi l'UI
+      if (data.expanded !== !content.classList.contains('collapsed')) {
+        if (data.expanded) {
+          content.classList.remove('collapsed')
+          arrow.style.transform = 'rotate(0deg)'
+        } else {
+          content.classList.add('collapsed')
+          arrow.style.transform = 'rotate(-90deg)'
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Errore nel salvare lo stato:', error)
+      // In caso di errore, ripristina lo stato precedente
+      if (isCurrentlyExpanded) {
+        content.classList.remove('collapsed')
+        arrow.style.transform = 'rotate(0deg)'
+      } else {
+        content.classList.add('collapsed')
+        arrow.style.transform = 'rotate(-90deg)'
+      }
+    })
   }
   
   expandAll() {
@@ -39,6 +97,9 @@ export default class extends Controller {
     arrows.forEach(arrow => {
       arrow.style.transform = 'rotate(0deg)'
     })
+
+    // TODO: Opzionalmente puoi anche salvare tutti gli stati nel database
+    // con una chiamata batch se necessario
   }
   
   collapseAll() {
@@ -56,5 +117,8 @@ export default class extends Controller {
     arrows.forEach(arrow => {
       arrow.style.transform = 'rotate(-90deg)'
     })
+
+    // TODO: Opzionalmente puoi anche salvare tutti gli stati nel database
+    // con una chiamata batch se necessario
   }
 }

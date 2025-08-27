@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_11_171518) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_27_080511) do
   create_table "list_items", force: :cascade do |t|
     t.string "title", null: false
     t.text "content"
@@ -18,6 +18,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_11_171518) do
     t.string "ancestry"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "expanded", default: false
     t.index ["ancestry"], name: "index_list_items_on_ancestry"
     t.index ["position"], name: "index_list_items_on_position"
   end

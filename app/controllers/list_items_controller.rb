@@ -10,16 +10,25 @@ class ListItemsController < ApplicationController
   def show
   end
 
+  def toggle_expanded
+    @list_item = ListItem.find(params[:id])
+    @list_item.update!(expanded: !@list_item.expanded?)
+
+    respond_to do |format|
+      format.json { render json: { expanded: @list_item.expanded? } }
+    end
+  end
+
   def new
     @list_item = ListItem.new
     @parent_id = params[:parent_id]
 
     # DEBUG: Vediamo cosa arriva
-    puts "=== DEBUG NEW ACTION ==="
-    puts "params[:parent_id]: #{params[:parent_id]}"
-    puts "request.url: #{request.url}"
-    puts "params: #{params.inspect}"
-    puts "========================"
+    # puts "=== DEBUG NEW ACTION ==="
+    # puts "params[:parent_id]: #{params[:parent_id]}"
+    #  puts "request.url: #{request.url}"
+    # puts "params: #{params.inspect}"
+    # puts "========================"
 
     if @parent_id.present?
       @parent_item = ListItem.find(@parent_id)
@@ -30,29 +39,29 @@ class ListItemsController < ApplicationController
   def create
     @list_item = ListItem.new(list_item_params)
 
-    # IMPORTANTE: Gestisci il parent PRIMA di salvare
+    # Trova il parent se specificato
+    parent = nil
     if params[:list_item][:parent_id].present?
       parent = ListItem.find(params[:list_item][:parent_id])
-      @list_item.parent = parent
-      puts "DEBUG: Setting parent to #{parent.title} (ID: #{parent.id})"
     elsif params[:parent_id].present?
       parent = ListItem.find(params[:parent_id])
-      @list_item.parent = parent
-      puts "DEBUG: Setting parent to #{parent.title} (ID: #{parent.id})"
     end
 
-    puts "DEBUG: About to save item with parent: #{@list_item.parent&.title}"
+    # Assegna il parent al nuovo item
+    @list_item.parent = parent if parent.present?
 
     if @list_item.save
-      puts "DEBUG: Item saved successfully with parent_id: #{@list_item.parent_id}"
+      # DOPO il salvataggio, espandi il parent se esiste
+      if parent.present? && !parent.expanded?
+        parent.update(expanded: true)
+      end
+
       redirect_to list_items_path, notice: "Item creato con successo!"
     else
-      puts "DEBUG: Item save failed with errors: #{@list_item.errors.full_messages}"
       @parent_id = params[:parent_id] || params[:list_item][:parent_id]
       render :new, status: :unprocessable_entity
     end
   end
-
   def edit
   end
 
@@ -64,10 +73,7 @@ class ListItemsController < ApplicationController
     end
   end
 
-  def destroy
-    @list_item.destroy
-    redirect_to list_items_path, notice: "Item eliminato con successo!"
-  end
+
 
   def sort
     params[:item_ids].each_with_index do |id, index|
@@ -135,6 +141,46 @@ class ListItemsController < ApplicationController
     redirect_to list_items_path, alert: "Errore durante l'outdentazione: #{e.message}"
   end
 
+  def destroy
+    # Salva informazioni prima dell'eliminazione
+    old_parent = @list_item.parent
+    old_position = @list_item.position || 0
+    children = @list_item.children.to_a # Converti in array per evitare problemi
+
+    # Step 1: Riassegna ogni child al nonno, mantenendo la posizione relativa
+    children.each_with_index do |child, index|
+      new_position = old_position + index + 1
+
+      if old_parent
+        # Il child prende il posto del parent eliminato e i successivi si spostano
+        child.update!(parent: old_parent, position: new_position)
+      else
+        # Diventa root con posizione calcolata
+        child.update!(parent: nil, position: new_position)
+      end
+    end
+
+    # Step 2: Aggiorna le posizioni dei siblings che vengono dopo
+    siblings_to_update = if old_parent
+      old_parent.children.where("position > ?", old_position + children.length)
+    else
+      ListItem.roots.where("position > ?", old_position + children.length)
+    end
+
+    siblings_to_update.each do |sibling|
+      sibling.update_column(:position, sibling.position + children.length)
+    end
+
+    # Step 3: Elimina l'elemento
+    @list_item.destroy!
+
+    respond_to do |format|
+      format.html { redirect_to list_items_url, notice: "Elemento eliminato. I sotto-elementi sono stati spostati al livello superiore." }
+      format.json { head :no_content }
+    end
+  end
+  # ... altri metodi esistenti ...
+
   private
 
   def set_list_item
@@ -142,6 +188,23 @@ class ListItemsController < ApplicationController
   end
 
   def list_item_params
-    params.require(:list_item).permit(:title, :content, :parent_id, :position)
+    params.require(:list_item).permit(:title, :content, :parent_id, :position, :expanded)
+  end
+
+  # Metodo per riordinare le posizioni dopo eliminazione
+  def reorder_positions
+    # Riordina tutti gli elementi root
+    ListItem.roots.order(:position, :id).each_with_index do |item, index|
+      item.update_column(:position, index + 1)
+    end
+
+    # Riordina tutti i children di ogni parent
+    ListItem.all.group_by(&:parent_id).each do |parent_id, siblings|
+      next if parent_id.nil? # Skip roots (già fatto sopra)
+
+      siblings.sort_by { |item| [ item.position || 0, item.id ] }.each_with_index do |item, index|
+        item.update_column(:position, index + 1)
+      end
+    end
   end
 end

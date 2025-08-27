@@ -5,6 +5,22 @@ class ListItem < ApplicationRecord
 
   scope :ordered, -> { order(position: :asc) }
   scope :roots, -> { where(ancestry: nil) }
+  # Scope per elementi espansi/collassati
+  scope :expanded, -> { where(expanded: true) }
+  scope :collapsed, -> { where(expanded: false) }
+
+  # Metodi di convenienza
+  def expand!
+    update!(expanded: true)
+  end
+
+  def collapse!
+    update!(expanded: false)
+  end
+
+  def toggle_expanded!
+    update!(expanded: !expanded?)
+  end
 
   before_create :set_position
   after_destroy :handle_children_and_reorder
@@ -32,6 +48,26 @@ class ListItem < ApplicationRecord
              .update_all("position = position + 1")
       self.position = new_position
       save!
+    end
+  end
+  def deletion_preview
+    {
+      item_title: title,
+      children_count: children.count,
+      children_titles: children.pluck(:title),
+      will_become_children_of: parent ? parent.title : "ROOT",
+      total_descendants: descendants.count
+    }
+  end
+
+  # Metodo sicuro per eliminazione che preserva children
+  def destroy_preserving_children
+    transaction do
+      # Sposta children al parent corrente
+      children.update_all(ancestry: ancestry)
+
+      # Elimina solo questo elemento
+      destroy
     end
   end
 
