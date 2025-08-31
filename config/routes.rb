@@ -4,6 +4,7 @@ Rails.application.routes.draw do
 
     resources :list_items do
       member do
+        get :export_yaml
         patch :toggle_expanded
         patch :move
         patch :indent
@@ -14,4 +15,10 @@ Rails.application.routes.draw do
         patch :sort
       end
     end
+
+  # Routes per link
+  get "/links/choose", to: "links#choose"
+  post "/links/create", to: "links#create"
+  delete "/links/:id", to: "links#destroy", as: "destroy_link"
+  get "/links/:id", to: "links#show", as: "show_link"
 end

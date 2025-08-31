@@ -179,16 +179,53 @@ class ListItemsController < ApplicationController
       format.json { head :no_content }
     end
   end
-  # ... altri metodi esistenti ...
+# ... altri metodi esistenti ...
 
-  private
+# Nel ListItemsController
+def export_yaml
+  @list_item = ListItem.friendly.find(params[:id])
 
+  yaml_data = generate_yaml_structure(@list_item)
+
+  respond_to do |format|
+    format.yaml do
+      send_data yaml_data.to_yaml,
+                filename: "#{@list_item.slug || @list_item.id}.yml",
+                type: "application/x-yaml"
+    end
+    format.html { redirect_to @list_item, notice: "Esportazione completata" }
+  end
+end
+
+private
+
+def generate_yaml_structure(item)
+  structure = {
+    "slug" => item.slug,
+    "title" => item.title,
+    "content" => item.content,
+    "position" => item.position,
+    "text_color" => item.text_color,
+    "background_color" => item.background_color,
+    "expanded" => item.expanded,
+    "is_link" => item.is_link?,
+    "linked_item_slug" => item.is_link? ? item.linked_item&.slug : nil
+  }
+
+  if item.has_children?
+    structure["children"] = item.children
+                               .order(Arel.sql("COALESCE(position, 0) ASC, id ASC"))
+                               .map { |child| generate_yaml_structure(child) }
+  end
+
+  structure
+end
   def set_list_item
-    @list_item = ListItem.find(params[:id])
+     @list_item = ListItem.friendly.find(params[:id])
   end
 
   def list_item_params
-    params.require(:list_item).permit(:title, :content, :parent_id, :position, :expanded)
+    params.require(:list_item).permit(:title, :content, :parent_id, :position, :expanded, :link_item_id, :link, :slug, :text_color, :background_color)
   end
 
   # Metodo per riordinare le posizioni dopo eliminazione

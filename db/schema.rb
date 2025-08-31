@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_27_080511) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_28_052413) do
   create_table "list_items", force: :cascade do |t|
     t.string "title", null: false
     t.text "content"
@@ -19,7 +19,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_27_080511) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "expanded", default: false
+    t.integer "link_item_id"
+    t.boolean "link", default: false
+    t.string "slug"
+    t.string "text_color", default: "#374151"
+    t.string "background_color", default: "#ffffff"
     t.index ["ancestry"], name: "index_list_items_on_ancestry"
+    t.index ["link_item_id"], name: "index_list_items_on_link_item_id"
     t.index ["position"], name: "index_list_items_on_position"
+    t.index ["slug"], name: "index_list_items_on_slug", unique: true
   end
 end

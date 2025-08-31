@@ -1,4 +1,6 @@
 <%# app/views/list_items/new.html.erb %>
+<!-- Opzione per creare un link invece di un elemento normale -->
+
 <div class="container mx-auto px-4 py-8">
   <div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-4 mb-8">
@@ -54,7 +56,81 @@
                 placeholder: "Descrizione opzionale del contenuto..." %>
           </div>
 
-          <div class="flex gap-4">
+          
+          <!-- Aggiungi questi campi nel form dopo i campi esistenti -->
+
+<div class="field">
+  <%= form.label :slug, "Slug (URL personalizzato)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+  <%= form.text_field :slug, 
+      placeholder: "es: mio-elemento-speciale", 
+      class: "w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+  <p class="text-xs text-gray-500 mt-1">Lascia vuoto per generarlo automaticamente dal titolo</p>
+</div>
+
+<div class="grid grid-cols-2 gap-4">
+  <div class="field">
+    <%= form.label :text_color, "Colore testo", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <div class="flex gap-2">
+      <%= form.color_field :text_color, 
+          value: (@list_item.text_color || '#374151'),
+          class: "w-16 h-10 border border-gray-300 rounded-md" %>
+      <%= form.text_field :text_color, 
+          placeholder: "#374151", 
+          class: "flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+    </div>
+  </div>
+
+  <div class="field">
+    <%= form.label :background_color, "Colore sfondo", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <div class="flex gap-2">
+      <%= form.color_field :background_color, 
+          value: (@list_item.background_color || '#ffffff'),
+          class: "w-16 h-10 border border-gray-300 rounded-md" %>
+      <%= form.text_field :background_color, 
+          placeholder: "#ffffff", 
+          class: "flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+    </div>
+  </div>
+</div>
+
+<!-- Anteprima colori -->
+<div class="field">
+  <label class="block text-sm font-medium text-gray-700 mb-1">Anteprima</label>
+  <div id="color-preview" 
+       style="<%= @list_item.inline_style if @list_item.persisted? %>"
+       class="border border-gray-300 rounded-md px-4 py-3 text-center font-medium">
+    <%= @list_item.title.present? ? @list_item.title : "Anteprima del tuo elemento" %>
+  </div>
+</div>
+
+<script>
+// Preview in tempo reale
+document.addEventListener('DOMContentLoaded', function() {
+  const textColorInputs = document.querySelectorAll('input[id*="text_color"]');
+  const bgColorInputs = document.querySelectorAll('input[id*="background_color"]');
+  const titleInput = document.querySelector('input[id*="title"]');
+  const preview = document.getElementById('color-preview');
+  
+  function updatePreview() {
+    const textColor = document.querySelector('input[type="color"][id*="text_color"]').value;
+    const bgColor = document.querySelector('input[type="color"][id*="background_color"]').value;
+    const title = titleInput.value || 'Anteprima del tuo elemento';
+    
+    preview.style.color = textColor;
+    preview.style.backgroundColor = bgColor;
+    preview.textContent = title;
+    
+    // Sincronizza i campi text con i color
+    document.querySelector('input[type="text"][id*="text_color"]').value = textColor;
+    document.querySelector('input[type="text"][id*="background_color"]').value = bgColor;
+  }
+  
+  [...textColorInputs, ...bgColorInputs, titleInput].forEach(input => {
+    input.addEventListener('input', updatePreview);
+  });
+});
+</script>
+<div class="flex gap-4">
             <%= form.submit params[:parent_id].present? ? "Crea Sotto-elemento" : "Crea Elemento", 
                 class: "bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md transition-colors" %>
             
@@ -67,3 +143,28 @@
     </div>
   </div>
 </div>
+
+<% if !params[:parent_id].present? || (params[:parent_id].present? && ListItem.find(params[:parent_id]).can_create_link?) %>
+  
+  <div class="mt-6 pt-6 border-t border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Oppure</h3>
+    
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="flex items-start gap-3">
+        <div class="text-blue-500 mt-1">🔗</div>
+        <div class="flex-1">
+          <h4 class="font-medium text-blue-900">Crea un collegamento</h4>
+          <p class="text-sm text-blue-700 mb-3">
+            Invece di creare un nuovo elemento, puoi collegare un elemento esistente
+          </p>
+          
+          <%= link_to "Scegli elemento da collegare", 
+              links_choose_path(item_id: params[:parent_id]),
+              class: "inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium" %>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+<% end %>
+

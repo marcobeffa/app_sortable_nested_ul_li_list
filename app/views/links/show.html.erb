@@ -1,0 +1,45 @@
+<%# app/views/links/show.html.erb %>
+<div class="container mx-auto px-4 py-8">
+  
+  <!-- Header con info del collegamento -->
+  <div class="mb-6">
+    <%= link_to list_items_path, 
+        class: "inline-flex items-center text-blue-600 hover:text-blue-700 mb-4" do %>
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+      Torna alla lista
+    <% end %>
+    
+    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+      <div class="flex items-center gap-3">
+        <div class="text-purple-600 text-xl">🔗</div>
+        <div>
+          <h1 class="text-xl font-bold text-purple-900">
+            Collegamento: <%= @item.title %>
+          </h1>
+          <p class="text-purple-700">
+            Questo elemento punta a: <strong><%= @target.title %></strong>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Albero del target -->
+  <div class="bg-white rounded-lg shadow-sm border">
+    <div class="p-4 border-b bg-gray-50">
+      <h2 class="text-lg font-semibold text-gray-900">
+        Albero dell'elemento collegato
+      </h2>
+      <p class="text-sm text-gray-600">
+        Visualizzazione dell'elemento e dei suoi sotto-elementi
+      </p>
+    </div>
+    
+    <div class="p-4">
+      <%= render 'shared/tree_view', tree: @tree %>
+    </div>
+  </div>
+
+</div>

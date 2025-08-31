@@ -69,3 +69,5 @@ gem "ancestry"
 gem "stimulus-rails"
 # Nel Gemfile, sostituisci ancestry con acts_as_tree
 gem "acts_as_tree"
+# Gemfile
+gem "friendly_id"

@@ -1,0 +1,46 @@
+<%# app/views/links/choose.html.erb %>
+<div class="container mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6">
+    Crea collegamento per: "<%= @item.title %>"
+  </h1>
+  
+  <!-- Ricerca -->
+  <%= form_with url: links_choose_path, method: :get, local: true, class: "mb-6" do |form| %>
+    <%= form.hidden_field :item_id, value: @item.id %>
+    <div class="flex gap-2">
+      <%= form.text_field :search, 
+          value: @search,
+          placeholder: "Cerca elemento da collegare...",
+          class: "flex-1 border rounded px-3 py-2" %>
+      <%= form.submit "Cerca", class: "bg-blue-500 text-white px-4 py-2 rounded" %>
+    </div>
+  <% end %>
+  
+  <!-- Lista elementi disponibili -->
+  <div class="space-y-2">
+    <% @available_items.each do |item| %>
+      <div class="border rounded p-3 flex justify-between items-center bg-white">
+        <div>
+          <h3 class="font-semibold"><%= item.title %></h3>
+          <% if item.content.present? %>
+            <p class="text-sm text-gray-600"><%= truncate(item.content, length: 100) %></p>
+          <% end %>
+          <small class="text-gray-400">
+            <%= item.children.count %> sotto-elementi
+          </small>
+        </div>
+        
+        <%= button_to "Collega qui", links_create_path, 
+            method: :post,
+            params: { item_id: @item.id, target_id: item.id },
+            class: "bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600",
+            data: { confirm: "Collegare '#{@item.title}' a '#{item.title}'?" } %>
+      </div>
+    <% end %>
+  </div>
+  
+  <!-- Torna indietro -->
+  <div class="mt-6">
+    <%= link_to "← Annulla", list_items_path, class: "text-blue-600 hover:underline" %>
+  </div>
+</div>

@@ -1,0 +1,58 @@
+<%# app/views/shared/_tree_view.html.erb %>
+<div class="tree-view space-y-2">
+  <% tree.each do |item, children| %>
+    <div class="tree-item">
+      <!-- Item principale -->
+      <div class="flex items-center p-3 bg-gray-50 rounded-lg border">
+        <div class="flex items-center gap-2 flex-1">
+          <!-- Numero dell'item -->
+          <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-500 text-white text-xs font-semibold rounded-full">
+            <%= item.position || 1 %>
+          </span>
+          
+          <!-- Titolo -->
+          <h3 class="font-medium text-gray-900">
+            <%= item.display_title %>
+          </h3>
+          
+          <!-- Content se presente -->
+          <% if item.content.present? %>
+            <span class="text-gray-500 text-sm">
+              • <%= truncate(item.content, length: 60) %>
+            </span>
+          <% end %>
+        </div>
+        
+        <!-- Link alla visualizzazione normale -->
+        <%= link_to list_item_path(item), 
+            class: "text-blue-600 hover:text-blue-700 text-sm",
+            target: "_blank" do %>
+          Visualizza
+        <% end %>
+      </div>
+      
+      <!-- Children ricorsivi -->
+      <% if children.any? %>
+        <div class="ml-8 mt-2 border-l-2 border-gray-200 pl-4">
+          <%= render 'shared/tree_view', tree: children %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<style>
+.tree-view .tree-item {
+  position: relative;
+}
+
+.tree-view .tree-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #e5e7eb;
+}
+</style>
